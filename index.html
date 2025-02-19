@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能点名系统</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2196F3">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --primary-dark: #1976D2;
+            --primary-light: #BBDEFB;
+            --background: #F5F7FA;
+            --surface: #FFFFFF;
+            --text-primary: #2C3E50;
+            --text-secondary: #607D8B;
+            --success: #4CAF50;
+            --border-radius: 16px;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', 'Segoe UI', sans-serif;
+            background-color: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .container {
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 900px;
+            transition: transform 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-2px);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .status-text {
+            text-align: center;
+            color: var(--text-secondary);
+            margin: 1.5rem 0;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .student-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .student-item {
+            background: var(--background);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            position: relative;
+            border: 2px solid transparent;
+            font-weight: 500;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .student-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .student-item.selected {
+            background: var(--primary-light);
+            border-color: var(--primary-color);
+            color: var(--primary-dark);
+        }
+
+        .student-item::after {
+            content: "✓";
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%) scale(0);
+            opacity: 0;
+            color: var(--success);
+            font-weight: bold;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .student-item.selected::after {
+            opacity: 1;
+            transform: translateY(-50%) scale(1);
+        }
+
+        .controls {
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .student-input {
+            flex: 1;
+            min-height: 100px;
+            padding: 1rem;
+            border: 2px solid var(--primary-light);
+            border-radius: var(--border-radius);
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        .student-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .update-btn {
+            padding: 1rem 2rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            align-self: flex-start;
+        }
+
+        .update-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .clear-btn {
+            padding: 1rem 2rem;
+            background: var(--text-secondary);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-md);
+        }
+
+        .clear-btn:hover {
+            background: var(--text-primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        @media (max-width: 768px) {
+            .input-group {
+                flex-direction: column;
+            }
+
+            .update-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>课堂点名系统</h1>
+        <div class="status-text">已选择 <span id="selected-count">0</span>/<span id="total-count">0</span> 人</div>
+        <div class="student-list" id="studentList"></div>
+        <div class="controls">
+            <button class="copy-btn" onclick="copyAbsentStudents()">复制未到学生名单</button>
+            <button class="clear-btn" onclick="clearAttendance()">清空点名记录</button>
+            <div class="input-group">
+                <textarea class="student-input" id="studentInput" placeholder="请输入学生名单，每个名字用逗号或换行分隔"></textarea>
+                <button class="update-btn" onclick="updateStudentList()">更新名单</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --primary-dark: #1976D2;
+            --primary-light: #BBDEFB;
+            --background: #F5F7FA;
+            --surface: #FFFFFF;
+            --text-primary: #2C3E50;
+            --text-secondary: #607D8B;
+            --success: #4CAF50;
+            --border-radius: 16px;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', 'Segoe UI', sans-serif;
+            background-color: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .container {
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 900px;
+            transition: transform 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-2px);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .status-text {
+            text-align: center;
+            color: var(--text-secondary);
+            margin: 1.5rem 0;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .student-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .student-item {
+            background: var(--background);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            position: relative;
+            border: 2px solid transparent;
+            font-weight: 500;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .student-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .student-item.selected {
+            background: var(--primary-light);
+            border-color: var(--primary-color);
+            color: var(--primary-dark);
+        }
+
+        .student-item::after {
+            content: "✓";
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%) scale(0);
+            opacity: 0;
+            color: var(--success);
+            font-weight: bold;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .student-item.selected::after {
+            opacity: 1;
+            transform: translateY(-50%) scale(1);
+        }
+
+        .copy-btn {
+            display: block;
+            margin: 2rem auto 0;
+            padding: 1rem 2rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow-md);
+        }
+
+        .copy-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .copy-btn:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .student-list {
+                grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+                gap: 0.8rem;
+            }
+
+            .student-item {
+                padding: 0.8rem;
+                font-size: 0.9rem;
+            }
+
+            .copy-btn {
+                padding: 0.8rem 1.6rem;
+                font-size: 1rem;
+            }
+        }
+    </style>
+
+    <script>
+        // 注册 Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker 注册成功:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker 注册失败:', error);
+                    });
+            });
+        }
+
+        // 学生名单数据
+        let students = [
+            "张三", "李四", "王五", "赵六", 
+            "陈七", "林八", "黄九", "周十",
+            "吴十一", "郑十二", "孙十三", "杨十四"
+        ];
+
+        // 从本地存储加载学生名单和出勤记录
+        function loadFromStorage() {
+            const savedStudents = localStorage.getItem('students');
+            if (savedStudents) {
+                students = JSON.parse(savedStudents);
+            }
+
+            const savedAttendance = localStorage.getItem('attendance');
+            if (savedAttendance) {
+                const attendanceList = JSON.parse(savedAttendance);
+                initList();
+                attendanceList.forEach(name => {
+                    const element = Array.from(document.querySelectorAll('.student-item'))
+                        .find(item => item.textContent.trim() === name);
+                    if (element) {
+                        element.classList.add('selected');
+                    }
+                });
+                updateCounter();
+            }
+        }
+
+        // 初始化名单
+        function initList() {
+            const list = document.getElementById('studentList');
+            list.innerHTML = students.map(name => `
+                <div class="student-item" onclick="toggleStudent(this)">${name}</div>
+            `).join('');
+            document.getElementById('total-count').textContent = students.length;
+        }
+
+        // 切换学生状态
+        function toggleStudent(element) {
+            element.classList.toggle('selected');
+            updateCounter();
+            saveAttendance();
+        }
+
+        // 保存出勤记录到本地存储
+        function saveAttendance() {
+            const attendanceList = [];
+            document.querySelectorAll('.student-item.selected').forEach(item => {
+                attendanceList.push(item.textContent.trim());
+            });
+            localStorage.setItem('attendance', JSON.stringify(attendanceList));
+        }
+
+        // 更新计数
+        function updateCounter() {
+            const selected = document.querySelectorAll('.selected').length;
+            document.getElementById('selected-count').textContent = selected;
+        }
+
+        // 复制未到学生
+        async function copyAbsentStudents() {
+            const absentStudents = [];
+            document.querySelectorAll('.student-item:not(.selected)').forEach(item => {
+                absentStudents.push(item.textContent.trim());
+            });
+            const text = absentStudents.join('，');
+            
+            try {
+                await navigator.clipboard.writeText(text);
+                const copyBtn = document.querySelector('.copy-btn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '复制成功！';
+                copyBtn.style.background = 'var(--success)';
+                
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.style.background = '';
+                }, 2000);
+            } catch (err) {
+                console.error('复制失败:', err);
+                alert('复制失败，请手动复制：' + text);
+            }
+        }
+
+        // 更新学生名单
+        async function updateStudentList() {
+            try {
+                const input = document.getElementById('studentInput').value;
+                const newStudents = input.split(/[,，\n]/).map(name => name.trim()).filter(name => name);
+                
+                if (newStudents.length === 0) {
+                    alert('请输入有效的学生名单');
+                    return;
+                }
+
+                // 检查重复名字
+                const uniqueStudents = [...new Set(newStudents)];
+                if (uniqueStudents.length !== newStudents.length) {
+                    alert('名单中存在重复的名字，已自动去重');
+                }
+
+                students = uniqueStudents;
+                await Promise.all([
+                    localStorage.setItem('students', JSON.stringify(students)),
+                    localStorage.removeItem('attendance')
+                ]);
+                
+                // 重新初始化列表并更新显示
+                initList();
+                updateCounter();
+                document.getElementById('studentInput').value = students.join('\n');
+
+                // 添加成功提示
+                const updateBtn = document.querySelector('.update-btn');
+                const originalText = updateBtn.textContent;
+                updateBtn.textContent = '更新成功！';
+                updateBtn.style.background = 'var(--success)';
+                
+                setTimeout(() => {
+                    updateBtn.textContent = originalText;
+                    updateBtn.style.background = '';
+                }, 2000);
+            } catch (error) {
+                console.error('更新名单失败:', error);
+                alert('更新名单失败，请重试');
+            }
+        }
+
+        // 清空点名记录
+        function clearAttendance() {
+            if (confirm('确定要清空点名记录吗？')) {
+                document.querySelectorAll('.student-item.selected').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                updateCounter();
+                saveAttendance();
+            }
+        }
+
+        // 初始化
+        initList();
+        loadFromStorage();
+
+        // 添加触摸事件支持
+        document.querySelectorAll('.student-item').forEach(item => {
+            item.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                this.style.transform = 'scale(0.95)';
+            });
+
+            item.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                this.style.transform = '';
+                toggleStudent(this);
+            });
+
+            item.addEventListener('touchcancel', function() {
+                this.style.transform = '';
+            });
+        });
+    </script>
+</body>
+</html>
